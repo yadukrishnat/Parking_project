@@ -9,11 +9,11 @@ import lombok.Data;
 @Data
 public class LandRequest {
     private String place;
-    private double latitude;
-    private double longitude;
-    private String availableDays;
-    private String timeSlots;
+    private Double latitude;
+    private Double longitude;
+    private List<String> availableDays;
+    private List<String> timeSlots;
     private int units;
-    private Long userId;  // ✅ Add this
+    // getters and setters
 }
 

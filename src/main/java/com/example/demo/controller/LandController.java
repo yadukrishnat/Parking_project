@@ -1,24 +1,29 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.LandListResponse;
 import com.example.demo.dto.LandRequest;
 import com.example.demo.model.Land;
 import com.example.demo.model.User;
 import com.example.demo.repository.LandRepository;
 import com.example.demo.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/land")
+@CrossOrigin(origins = "*")  // Allow frontend calls
 public class LandController {
 
     private final LandRepository landRepository;
     private final UserRepository userRepository;
 
-    public LandController(LandRepository landRepository,UserRepository userRepository) {
+    public LandController(LandRepository landRepository, UserRepository userRepository) {
         this.landRepository = landRepository;
         this.userRepository = userRepository;
     }
@@ -28,39 +33,63 @@ public class LandController {
             @RequestParam Long userId,
             @RequestBody LandRequest request) {
 
-
         Map<String, Object> response = new HashMap<>();
 
-        // Check if user exists
+        // Validate user
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        // Validate request fields
+        if (request.getPlace() == null || request.getPlace().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Place is required");
+        }
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Latitude and Longitude are required");
+        }
 
         // Create land
         Land land = new Land();
         land.setPlace(request.getPlace());
         land.setLatitude(request.getLatitude());
         land.setLongitude(request.getLongitude());
-        land.setAvailableDays(request.getAvailableDays());
-        land.setTimeSlots(request.getTimeSlots());
+        land.setAvailableDays(String.join(",", request.getAvailableDays()));
+        land.setTimeSlots(String.join(",", request.getTimeSlots()));
         land.setUnits(request.getUnits());
         land.setUser(user);
 
-        landRepository.save(land);
+        // Save to database
+        Land savedLand = landRepository.save(land);
 
         response.put("success", true);
         response.put("message", "Land added successfully");
-        response.put("data", land);
+        response.put("data", savedLand);
 
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/user-lands")
+    public ResponseEntity<?> getUserLands(@RequestParam Long userId) {
+        if (!userRepository.existsById(userId)) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
 
+        // Get all lands of the user
+        List<Land> lands = landRepository.findByUserId(userId);
 
+        // Convert to DTO list
+        List<LandListResponse> landResponses = lands.stream()
+                .map(land -> new LandListResponse(
+                        land.getId(),
+                        land.getPlace(),
+                        land.getLatitude(),
+                        land.getLongitude(),
+                        land.getAvailableDays(),
+                        land.getTimeSlots(),
+                        land.getUnits()
+                ))
+                .toList();
 
-    @GetMapping("/all")
-    public Map<String, Object> getAllLands() {
-        Map<String, Object> response = new HashMap<>();
-        response.put("lands", landRepository.findAll());
-        return response;
+        return ResponseEntity.ok(landResponses);
     }
+
 }

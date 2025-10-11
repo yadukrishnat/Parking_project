@@ -28,6 +28,7 @@ public class LandController {
             @RequestParam Long userId,
             @RequestBody LandRequest request) {
 
+
         Map<String, Object> response = new HashMap<>();
 
         // Check if user exists

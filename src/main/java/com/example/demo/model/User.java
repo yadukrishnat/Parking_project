@@ -21,7 +21,8 @@ public class User {
 
     private String username;
     private String password;
-
+    @Column(name = "user_type")
+    private String userType = "USER";
     // ✅ One user can have many lands
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference

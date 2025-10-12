@@ -33,18 +33,18 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/register",
                                 "/api/login",
-                                "/api/land/add",
                                 "/h2-console/**"
                         ).permitAll()
+                        // 🔒 everything else needs JWT
                         .anyRequest().authenticated()
                 )
-                // ✅ new way to allow frames for H2 console
                 .headers(headers -> headers
                         .addHeaderWriter(new XFrameOptionsHeaderWriter(
                                 XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN))
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // ✅ Make sure filter is added AFTER permitAll config
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

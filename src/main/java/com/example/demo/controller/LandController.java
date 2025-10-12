@@ -46,7 +46,10 @@ public class LandController {
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Latitude and Longitude are required");
         }
-
+        if (!"LAND_OWNER".equalsIgnoreCase(user.getUserType())) {
+            user.setUserType("LAND_OWNER");
+            userRepository.save(user);
+        }
         // Create land
         Land land = new Land();
         land.setPlace(request.getPlace());
@@ -67,7 +70,7 @@ public class LandController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/user-lands")
+    @GetMapping("/userLands")
     public ResponseEntity<?> getUserLands(@RequestParam Long userId) {
         if (!userRepository.existsById(userId)) {
             return ResponseEntity.badRequest().body("User not found");

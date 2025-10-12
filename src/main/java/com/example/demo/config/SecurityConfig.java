@@ -33,6 +33,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/register",
                                 "/api/login",
+                                "/api/login",
+                                "/api/land/**",
                                 "/h2-console/**"
                         ).permitAll()
                         // 🔒 everything else needs JWT

@@ -66,6 +66,7 @@ public class LandController {
         response.put("success", true);
         response.put("message", "Land added successfully");
         response.put("data", savedLand);
+        response.put("userType",user.getUserType());
 
         return ResponseEntity.ok(response);
     }

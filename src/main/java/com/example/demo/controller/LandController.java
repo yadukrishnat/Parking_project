@@ -95,5 +95,33 @@ public class LandController {
 
         return ResponseEntity.ok(landResponses);
     }
+    @PutMapping("/activate")
+    public ResponseEntity<Map<String, Object>> activateLand(@RequestParam Long landId) {
+        Map<String, Object> response = new HashMap<>();
+
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new RuntimeException("Land not found"));
+
+        // Suppose you have a field 'active' in Land entity
+        land.setActive(true);
+        landRepository.save(land);
+
+        response.put("success", true);
+        response.put("message", "Land activated successfully");
+        response.put("data", land);
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/activeland")
+    public ResponseEntity<Map<String, Object>> getActiveLands() {
+        Map<String, Object> response = new HashMap<>();
+        var lands = landRepository.findByActiveTrue();
+
+        response.put("success", true);
+        response.put("count", lands.size());
+        response.put("data", lands);
+
+        return ResponseEntity.ok(response);
+    }
 
 }

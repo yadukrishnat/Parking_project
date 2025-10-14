@@ -102,7 +102,14 @@ public class LandController {
         Land land = landRepository.findById(landId)
                 .orElseThrow(() -> new RuntimeException("Land not found"));
 
-        // Suppose you have a field 'active' in Land entity
+        if (Boolean.TRUE.equals(land.isActive())) {  // ✅ check if already active
+            response.put("success", false);
+            response.put("message", "Land is already active");
+            response.put("data", land);
+            return ResponseEntity.ok(response);
+        }
+
+        // ✅ Activate the land
         land.setActive(true);
         landRepository.save(land);
 
@@ -112,6 +119,7 @@ public class LandController {
 
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/activeland")
     public ResponseEntity<Map<String, Object>> getActiveLands() {
         Map<String, Object> response = new HashMap<>();

@@ -37,7 +37,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 path.startsWith("/api/land/add") ||
                 path.startsWith("/api/land/userLands") ||
                 path.startsWith("/api/land/activate")||
-                path.startsWith("/api/land/activeLand")
+                path.startsWith("/api/land/activeland")
 
             // 👈 now matches /api/land/activate?landId=5
         ) {

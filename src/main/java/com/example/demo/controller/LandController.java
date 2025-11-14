@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/land")
@@ -131,5 +132,54 @@ public class LandController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/activeland/timeslots")
+    public List<String> getActiveLandsTimeSlotsByPlace(@RequestParam String place) {
+        return landRepository.findByActiveTrueAndPlaceIgnoreCase(place).stream()
+                .map(Land::getTimeSlots)
+                .collect(Collectors.toList());
+    }
+
+
+    @PostMapping("/searchByLocation")
+    public ResponseEntity<?> getUnitsByLocation(@RequestBody LandSearchRequest request) {
+
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            return ResponseEntity.badRequest().body("Latitude & Longitude are required");
+        }
+
+        if (request.getDate() == null || request.getDate().isEmpty()) {
+            return ResponseEntity.badRequest().body("Date is required");
+        }
+
+        // Find land by lat + long
+        Land land = landRepository.findByLatitudeAndLongitude(
+                request.getLatitude(),
+                request.getLongitude()
+        );
+
+        if (land == null) {
+            return ResponseEntity.status(404).body("Land not found");
+        }
+
+        // Check if date exists in availableDays (stored as comma-separated string)
+        boolean isAvailable = land.getAvailableDays()
+                .contains(request.getDate());
+
+        if (!isAvailable) {
+            return ResponseEntity.ok(Map.of(
+                    "available", false,
+                    "message", "Land is not available on this date"
+            ));
+        }
+
+        // Success response
+        return ResponseEntity.ok(Map.of(
+                "available", true,
+                "units", land.getUnits(),
+                "place", land.getPlace()
+        ));
+    }
+
 
 }

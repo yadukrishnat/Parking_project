@@ -33,6 +33,7 @@ public class LoginController {
         userRepository.findByUsername(request.getUsername()).ifPresentOrElse(user -> {
             if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 String token = javaUtils.generateToken(user.getUsername());
+                 System.out.println(token);
                 response.put("success", true);
                 response.put("message", "Login successful");
                 response.put("token", token);

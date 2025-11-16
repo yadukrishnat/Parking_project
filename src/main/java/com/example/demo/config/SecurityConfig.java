@@ -103,10 +103,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/register",
-                                "/api/login",
-                                "/api/login",
-                                "/api/land/**",
-                                "/h2-console/**"
+                                "/api/login"
                         ).permitAll()
                         // 🔒 everything else needs JWT
                         .anyRequest().authenticated()

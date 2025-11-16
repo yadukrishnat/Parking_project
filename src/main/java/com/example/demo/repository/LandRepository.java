@@ -10,6 +10,9 @@ public interface LandRepository extends JpaRepository<Land, Long> {
     List<Land> findByUserId(Long userId);
     List<Land> findByActiveTrue();
     List<Land> findByActiveTrueAndPlaceIgnoreCase( String land);
+    List<Land> findAllByLatitudeAndLongitude(Double latitude, Double longitude);
+
+
 }
 
 

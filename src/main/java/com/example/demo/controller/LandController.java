@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.LandListResponse;
 import com.example.demo.dto.LandRequest;
+import com.example.demo.dto.LandSearchRequest;
 import com.example.demo.model.Land;
 import com.example.demo.model.User;
 import com.example.demo.repository.LandRepository;
@@ -11,9 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -152,34 +152,50 @@ public class LandController {
             return ResponseEntity.badRequest().body("Date is required");
         }
 
-        // Find land by lat + long
-        Land land = landRepository.findByLatitudeAndLongitude(
+        // Convert date → day name
+        LocalDate date = LocalDate.parse(request.getDate());
+        String dayName = date.getDayOfWeek().toString(); // e.g., MONDAY
+        dayName = dayName.substring(0,1) + dayName.substring(1).toLowerCase(); // Monday
+
+        // Get all lands matching lat/long
+        List<Land> lands = landRepository.findAllByLatitudeAndLongitude(
                 request.getLatitude(),
                 request.getLongitude()
         );
 
-        if (land == null) {
-            return ResponseEntity.status(404).body("Land not found");
+        if (lands.isEmpty()) {
+            return ResponseEntity.status(404).body("No lands found");
         }
 
-        // Check if date exists in availableDays (stored as comma-separated string)
-        boolean isAvailable = land.getAvailableDays()
-                .contains(request.getDate());
+        // Filter lands by availability on the given day
+        List<Map<String, Object>> result = new ArrayList<>();
 
-        if (!isAvailable) {
-            return ResponseEntity.ok(Map.of(
-                    "available", false,
-                    "message", "Land is not available on this date"
-            ));
+        for (Land land : lands) {
+            String finalDayName = dayName;
+            if (!land.isActive()) {
+                continue;
+            }
+
+            boolean isAvailable = Arrays.stream(land.getAvailableDays().split(","))
+                    .map(String::trim)
+                    .anyMatch(day -> day.equalsIgnoreCase(finalDayName));
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("place", land.getPlace());
+            response.put("units", land.getUnits());
+            response.put("available", isAvailable);
+
+            if (!isAvailable) {
+                response.put("message", "Not available on " + dayName);
+            }
+
+            result.add(response);
         }
 
-        // Success response
-        return ResponseEntity.ok(Map.of(
-                "available", true,
-                "units", land.getUnits(),
-                "place", land.getPlace()
-        ));
+        return ResponseEntity.ok(result);
     }
+
+
 
 
 }

@@ -10,7 +10,7 @@ description = "Demo project for Spring Boot"
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
 }
 
@@ -19,13 +19,12 @@ repositories {
 }
 
 dependencies {
-    // Core Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    // Database
-    runtimeOnly("com.h2database:h2")
+    // MySQL
+    implementation("com.mysql:mysql-connector-j:9.0.0")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
@@ -42,7 +41,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
-
-tasks.withType<Test> {
+tasks.test {
     useJUnitPlatform()
 }

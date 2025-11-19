@@ -40,7 +40,7 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     implementation("com.google.firebase:firebase-admin:9.2.0")
-
+    implementation("com.google.firebase:firebase-admin:9.2.0")
 }
 
 tasks.test {

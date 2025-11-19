@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+*.json
+*.p12
+src/main/resources/*.json

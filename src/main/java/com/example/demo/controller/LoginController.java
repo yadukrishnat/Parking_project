@@ -186,6 +186,7 @@ public class LoginController {
             userRepository.save(user);
 
             response.put("success", true);
+
             response.put("message", "User registered successfully");
             response.put("firebaseUid", firebaseUid);
 

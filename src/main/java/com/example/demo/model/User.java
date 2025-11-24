@@ -21,6 +21,8 @@ public class User {
 
     private String username;
     private String password;
+    @Column(unique = true)
+    private String firebaseUid;
     @Column(name = "user_type")
     private String userType = "USER";
     // ✅ One user can have many lands

@@ -23,8 +23,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
-    // MySQL
-    implementation("com.mysql:mysql-connector-j:9.0.0")
+    // ➤ H2 Database (Replaces MySQL)
+    runtimeOnly("com.h2database:h2")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
@@ -37,10 +37,11 @@ dependencies {
     testCompileOnly("org.projectlombok:lombok:1.18.34")
     testAnnotationProcessor("org.projectlombok:lombok:1.18.34")
 
+    // Firebase
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    implementation("com.google.firebase:firebase-admin:9.2.0")
-    implementation("com.google.firebase:firebase-admin:9.2.0")
 }
 
 tasks.test {

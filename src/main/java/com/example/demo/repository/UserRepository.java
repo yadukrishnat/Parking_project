@@ -13,4 +13,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // OR Option 2: custom JPQL if needed
     @Query("SELECT l FROM Land l WHERE l.user.id = :userId")
     List<Land> getLandsByUserId(Long userId);
+
+    Optional<User> findByFirebaseUid(String firebaseUid);
 }

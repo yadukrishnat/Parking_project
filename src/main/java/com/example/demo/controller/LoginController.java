@@ -74,6 +74,8 @@ package com.example.demo.controller;
 import com.example.demo.FcmService;
 import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.RegisterRequest;
+import com.example.demo.dto.RegisterResponseDto;
+import com.example.demo.dto.LoginResponseDTO;
 import com.example.demo.model.User;
 import com.example.demo.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -104,53 +106,61 @@ public class LoginController {
     // 🔹 LOGIN → call Firebase REST API
     // ---------------------------------------------------------
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody LoginRequest request) {
-
-        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + FIREBASE_API_KEY;
+    public ResponseEntity<LoginResponseDTO> login(
+            @RequestBody LoginRequest request
+    ) {
+        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="
+                + FIREBASE_API_KEY;
 
         Map<String, Object> firebaseRequest = new HashMap<>();
         firebaseRequest.put("email", request.getUsername());
         firebaseRequest.put("password", request.getPassword());
         firebaseRequest.put("returnSecureToken", true);
 
-        ResponseEntity<Map> firebaseResponse = restTemplate.postForEntity(url, firebaseRequest, Map.class);
+        try {
+            ResponseEntity<Map> firebaseResponse =
+                    restTemplate.postForEntity(url, firebaseRequest, Map.class);
 
-        Map<String, Object> response = new HashMap<>();
-
-        if (firebaseResponse.getStatusCode() == HttpStatus.OK) {
+            if (firebaseResponse.getStatusCode() != HttpStatus.OK) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new LoginResponseDTO(false, "Firebase login failed"));
+            }
 
             Map body = firebaseResponse.getBody();
             String firebaseUid = (String) body.get("localId");
 
-            // Fetch user
+            // Fetch user from DB
             User user = userRepository.findByFirebaseUid(firebaseUid).orElse(null);
-            System.out.println("User details: " + user);
 
-            // Build DTO only if user exists
-            UserController.UserDto userDto = null;
-            if (user != null) {
-                userDto = new UserController.UserDto(
-                        user.getId(),
-                        user.getUsername(),
-                        user.getUserType(),
-                        user.getFirebaseUid()
-                );
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new LoginResponseDTO(false, "User not registered"));
             }
 
-            response.put("success", true);
-            response.put("message", "Login successful");
-            response.put("idToken", body.get("idToken"));
-            response.put("refreshToken", body.get("refreshToken"));
-            response.put("firebaseUid", firebaseUid);
-            response.put("user", userDto); // SAFE
-        }
-        else {
-            response.put("success", false);
-            response.put("message", "Firebase login failed");
-        }
+            UserController.UserDto userDto = new UserController.UserDto(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getUserType(),
+                    user.getFirebaseUid()
+            );
 
-        return response;
+            LoginResponseDTO response = new LoginResponseDTO(
+                    true,
+                    "Login successful",
+                    (String) body.get("idToken"),
+                    (String) body.get("refreshToken"),
+                    firebaseUid,
+                    userDto
+            );
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new LoginResponseDTO(false, "Invalid username or password"));
+        }
     }
+
 
 
 
@@ -158,45 +168,61 @@ public class LoginController {
     // 🔹 REGISTER → Create Firebase user
     // ---------------------------------------------------------
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponseDto> register(
+            @RequestBody RegisterRequest request
+    ) {
 
-        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + FIREBASE_API_KEY;
+        // ✅ 1. Check if user already exists by username(email)
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new RegisterResponseDto(false, "User already exists"));
+        }
+
+        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="
+                + FIREBASE_API_KEY;
 
         Map<String, Object> firebaseRequest = new HashMap<>();
         firebaseRequest.put("email", request.getUsername());
         firebaseRequest.put("password", request.getPassword());
         firebaseRequest.put("returnSecureToken", true);
 
-        ResponseEntity<Map> firebaseResponse =
-                restTemplate.postForEntity(url, firebaseRequest, Map.class);
+        try {
+            // ✅ 2. Create user in Firebase (token generated here)
+            ResponseEntity<Map> firebaseResponse =
+                    restTemplate.postForEntity(url, firebaseRequest, Map.class);
 
-        Map<String, Object> response = new HashMap<>();
-
-        if (firebaseResponse.getStatusCode() == HttpStatus.OK) {
+            if (firebaseResponse.getStatusCode() != HttpStatus.OK) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new RegisterResponseDto(false, "Firebase registration failed"));
+            }
 
             Map body = firebaseResponse.getBody();
             String firebaseUid = (String) body.get("localId");
 
-            // ⬇️ Save user in database with Firebase UID
+            // ✅ 3. Save user in DB
             User user = new User();
             user.setUsername(request.getUsername());
-            user.setPassword(null); // since firebase manages password
+            user.setPassword(null);
             user.setUserType("USER");
             user.setFirebaseUid(firebaseUid);
             userRepository.save(user);
 
-            response.put("success", true);
+            RegisterResponseDto response = new RegisterResponseDto(
+                    true,
+                    "User registered successfully",
+                    (String) body.get("idToken"),
+                    (String) body.get("refreshToken"),
+                    firebaseUid
+            );
 
-            response.put("message", "User registered successfully");
-            response.put("firebaseUid", firebaseUid);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
-        } else {
-            response.put("success", false);
-            response.put("message", "Firebase registration failed");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new RegisterResponseDto(false, "Registration failed"));
         }
-
-        return response;
     }
+
 
 
 

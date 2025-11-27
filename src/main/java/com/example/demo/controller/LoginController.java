@@ -81,6 +81,7 @@ import com.example.demo.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -168,45 +169,45 @@ public class LoginController {
     // 🔹 REGISTER → Create Firebase user
     // ---------------------------------------------------------
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponseDto> register(
-            @RequestBody RegisterRequest request
-    ) {
+    public ResponseEntity<RegisterResponseDto> register(@RequestBody RegisterRequest request) {
 
-        // ✅ 1. Check if user already exists by username(email)
+        // 1️⃣ Check if user already exists by username/email
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(new RegisterResponseDto(false, "User already exists"));
         }
 
-        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="
-                + FIREBASE_API_KEY;
+        // 2️⃣ Firebase signup URL
+        String url = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + FIREBASE_API_KEY;
 
+        // 3️⃣ Prepare Firebase request body
         Map<String, Object> firebaseRequest = new HashMap<>();
         firebaseRequest.put("email", request.getUsername());
         firebaseRequest.put("password", request.getPassword());
         firebaseRequest.put("returnSecureToken", true);
 
         try {
-            // ✅ 2. Create user in Firebase (token generated here)
-            ResponseEntity<Map> firebaseResponse =
-                    restTemplate.postForEntity(url, firebaseRequest, Map.class);
+            // 4️⃣ Call Firebase REST API
+            ResponseEntity<Map> firebaseResponse = restTemplate.postForEntity(url, firebaseRequest, Map.class);
 
             if (firebaseResponse.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(new RegisterResponseDto(false, "Firebase registration failed"));
             }
 
+            // 5️⃣ Extract Firebase UID and tokens
             Map body = firebaseResponse.getBody();
             String firebaseUid = (String) body.get("localId");
 
-            // ✅ 3. Save user in DB
+            // 6️⃣ Save user in database
             User user = new User();
             user.setUsername(request.getUsername());
-            user.setPassword(null);
+            user.setPassword(null); // Firebase manages the password
             user.setUserType("USER");
             user.setFirebaseUid(firebaseUid);
             userRepository.save(user);
 
+            // 7️⃣ Build response DTO
             RegisterResponseDto response = new RegisterResponseDto(
                     true,
                     "User registered successfully",
@@ -222,6 +223,7 @@ public class LoginController {
                     .body(new RegisterResponseDto(false, "Registration failed"));
         }
     }
+
 
 
 

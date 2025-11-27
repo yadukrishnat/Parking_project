@@ -1,7 +1,6 @@
 package com.example.demo.dto;
 
 public class RegisterResponseDto {
-
     private boolean success;
     private String message;
     private String idToken;
@@ -15,13 +14,7 @@ public class RegisterResponseDto {
         this.message = message;
     }
 
-    public RegisterResponseDto(
-            boolean success,
-            String message,
-            String idToken,
-            String refreshToken,
-            String firebaseUid
-    ) {
+    public RegisterResponseDto(boolean success, String message, String idToken, String refreshToken, String firebaseUid) {
         this.success = success;
         this.message = message;
         this.idToken = idToken;
@@ -29,5 +22,15 @@ public class RegisterResponseDto {
         this.firebaseUid = firebaseUid;
     }
 
-    // getters & setters
+    // ✅ Public getters and setters
+    public boolean isSuccess() { return success; }
+    public void setSuccess(boolean success) { this.success = success; }
+    public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
+    public String getIdToken() { return idToken; }
+    public void setIdToken(String idToken) { this.idToken = idToken; }
+    public String getRefreshToken() { return refreshToken; }
+    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+    public String getFirebaseUid() { return firebaseUid; }
+    public void setFirebaseUid(String firebaseUid) { this.firebaseUid = firebaseUid; }
 }

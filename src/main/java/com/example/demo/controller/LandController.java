@@ -7,6 +7,10 @@ import com.example.demo.model.Land;
 import com.example.demo.model.User;
 import com.example.demo.repository.LandRepository;
 import com.example.demo.repository.UserRepository;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.Notification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,22 +40,25 @@ public class LandController {
 
         Map<String, Object> response = new HashMap<>();
 
-        // Validate user
+        // 1️⃣ Validate user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        // Validate request fields
+        // 2️⃣ Validate request fields
         if (request.getPlace() == null || request.getPlace().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Place is required");
         }
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Latitude and Longitude are required");
         }
+
+        // 3️⃣ Update user type if needed
         if (!"LAND_OWNER".equalsIgnoreCase(user.getUserType())) {
             user.setUserType("LAND_OWNER");
             userRepository.save(user);
         }
-        // Create land
+
+        // 4️⃣ Create land
         Land land = new Land();
         land.setPlace(request.getPlace());
         land.setLatitude(request.getLatitude());
@@ -61,16 +68,45 @@ public class LandController {
         land.setUnits(request.getUnits());
         land.setUser(user);
 
-        // Save to database
+        // 5️⃣ Save to database
         Land savedLand = landRepository.save(land);
 
+        // 6️⃣ Send notification (if user has FCM tokens)
+        if (user.getFcmTokens() != null && !user.getFcmTokens().isEmpty()) {
+            String title = "Land Added Successfully";
+            String body = "Your land at " + request.getPlace() + " has been added!";
+            for (String fcmToken : user.getFcmTokens()) {
+                try {
+                    sendFcmNotification(fcmToken, title, body);
+                } catch (Exception e) {
+                    System.out.println("FCM send failed: " + e.getMessage());
+                }
+            }
+        }
+
+        // 7️⃣ Build response
         response.put("success", true);
         response.put("message", "Land added successfully");
         response.put("data", savedLand);
-        response.put("userType",user.getUserType());
+        response.put("userType", user.getUserType());
 
         return ResponseEntity.ok(response);
     }
+
+    // 🔹 Helper method to send notification via Firebase
+    private void sendFcmNotification(String fcmToken, String title, String body) throws FirebaseMessagingException {
+        Message message = Message.builder()
+                .setToken(fcmToken)
+                .setNotification(Notification.builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build())
+                .build();
+
+        String response = FirebaseMessaging.getInstance().send(message);
+        System.out.println("Notification sent: " + response);
+    }
+
 
     @GetMapping("/userLands")
     public ResponseEntity<?> getUserLands(@RequestParam Long userId) {
